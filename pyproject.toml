@@ -1,6 +1,6 @@
 [project]
 name = "memgpt"
-version = "0.3.11"
+version = "0.3.7"
 description = "Teaching LLMs memory management for unbounded context"
 authors = [
     { name = "MemGPT Team", email = "hi@memgpt.ai" }

@@ -1,21 +1,33 @@
 
 ## Nested K/V (`nested_kv_task`)
-This task runs K/V lookups on synthetic data. You can run it with `icml_experiments/nested_kv_task/run.sh`.
+This task runs K/V lookups on synthetic data. You can run it with `paper_experiments/nested_kv_task/run.sh`.
 
 ## Document Q/A (`doc_qa_task`)
 This task runs question answering on a set of embedded wikipedia passages.
 
 ### Setup
+
+install dependencies:
+```
+uv sync --all-extras
+```
+
 You need a a running postgres database to run this experiment and an OpenAI account. Set your enviornment variables:
 ```
-export PGVECTOR_TEST_DB_URL=postgresql+pg8000://{username}:{password}@localhost:8888/{db}
+export PGVECTOR_TEST_DB_URL=postgresql+pg8000://{username}:{password}@localhost:5432/{db}
 export OPENAI_API_KEY={key}
 ```
 
 ## Download data
 Download the wikipedia embedding at:
 ```
-huggingface-cli download nlpkevinl/wikipedia_openai_embeddings --repo-type dataset
+hf download Upstash/wikipedia-2024-06-bge-m3 --repo-type dataset --include "data/zh/*" --cache-dir {YOUR_DIR}
+```
+
+Download the questions at
+
+```
+hf download MemGPT/qa_data --repo-type dataset --cache-dir {YOUR_DIR}
 ```
 
 ## Loading embeddings
