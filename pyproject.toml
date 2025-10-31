@@ -1,70 +1,77 @@
-[tool.poetry]
-name = "pymemgpt"
-version = "0.3.7"
-packages = [
-    {include = "memgpt"}
-]
+[project]
+name = "memgpt"
+version = "0.3.11"
 description = "Teaching LLMs memory management for unbounded context"
 authors = [
-    "MemGPT Team <hi@memgpt.ai>",
+    { name = "MemGPT Team", email = "hi@memgpt.ai" }
 ]
-license = "Apache License"
+
+license = { text = "Apache License" }
 readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "typer[all]>=0.9.0",
+    "questionary>=2.0.1",
+    "pytz>=2023.3.post1",
+    "tqdm>=4.66.1",
+    "black[jupyter]>=24.2.0",
+    "setuptools>=68.2.2",
+    "prettytable>=3.9.0",
+    "docstring-parser>=0.15",
+    "lancedb>=0.3.3",
+    "httpx>=0.25.2",
+    "numpy>=1.26.2",
+    "demjson3>=3.0.6",
+    "tiktoken>=0.5.1",
+    "pypdf>=3.17.1",
+    "pyyaml>=6.0.1",
+    "chromadb>=0.4.18",
+    "sqlalchemy-json>=0.7.0",
+    "pydantic>=2.5.2",
+    "html2text>=2020.1.16",
+    "docx2txt>=0.8",
+    "sqlalchemy>=2.0.25",
+    "python-box>=7.1.1",
+    "sqlmodel>=0.0.16",
+    "llama-index>=0.10.6",
+    "llama-index-embeddings-openai>=0.1.1",
+    "llama-index-embeddings-azure-openai>=0.1.6",
+    "python-multipart>=0.0.9"
+]
 
-[tool.poetry.scripts]
-memgpt = "memgpt.main:app"
 
-[tool.poetry.dependencies]
-python = "<3.12,>=3.10"
-typer = {extras = ["all"], version = "^0.9.0"}
-questionary = "^2.0.1"
-pytz = "^2023.3.post1"
-tqdm = "^4.66.1"
-black = {extras = ["jupyter"], version = "^24.2.0"}
-pytest = { version = "^7.4.4", optional = true }
-setuptools = "^68.2.2"
-datasets = { version = "^2.14.6", optional = true}
-prettytable = "^3.9.0"
-pgvector = { version = "^0.2.3", optional = true }
-pre-commit = {version = "^3.5.0", optional = true }
-pg8000 = {version = "^1.30.3", optional = true}
-websockets = {version = "^12.0", optional = true}
-docstring-parser = "^0.15"
-lancedb = "^0.3.3"
-httpx = "^0.25.2"
-numpy = "^1.26.2"
-demjson3 = "^3.0.6"
-tiktoken = "^0.5.1"
-pypdf = "^3.17.1"
-pyyaml = "^6.0.1"
-chromadb = "^0.4.18"
-sqlalchemy-json = "^0.7.0"
-fastapi = {version = "^0.104.1", optional = true}
-uvicorn = {version = "^0.24.0.post1", optional = true}
-pytest-asyncio = {version = "^0.23.2", optional = true}
-pydantic = "^2.5.2"
-pyautogen = {version = "0.2.0", optional = true}
-html2text = "^2020.1.16"
-docx2txt = "^0.8"
-sqlalchemy = "^2.0.25"
-pexpect = {version = "^4.9.0", optional = true}
-pyright = {version = "^1.1.347", optional = true}
-python-box = "^7.1.1"
-sqlmodel = "^0.0.16"
-pytest-order = {version = "^1.2.0", optional = true}
-autoflake = {version = "^2.3.0", optional = true}
-llama-index = "^0.10.6"
-llama-index-embeddings-openai = "^0.1.1"
-llama-index-embeddings-huggingface = {version = "^0.1.4", optional = true}
-llama-index-embeddings-azure-openai = "^0.1.6"
-python-multipart = "^0.0.9"
+[project.optional-dependencies]
+local = ["llama-index-embeddings-huggingface>=0.2.0"]
+postgres = [
+    "pgvector>=0.2.3",
+    "pg8000>=1.30.3",
+    "psycopg2-binary"
+]
 
-[tool.poetry.extras]
-local = ["llama-index-embeddings-huggingface"]
-postgres = ["pgvector", "pg8000"]
-dev = ["pytest", "pytest-asyncio", "pexpect", "black", "pre-commit", "datasets", "pyright", "pytest-order", "autoflake"]
-server = ["websockets", "fastapi", "uvicorn"]
-autogen = ["pyautogen"]
+experiments = [
+    "absl-py>=2.1.0",
+]
+
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.23.2",
+    "pexpect>=4.9.0",
+    "black>=24.2.0",
+    "pre-commit>=3.5.0",
+    "datasets>=2.14.6",
+    "pyright>=1.1.347",
+    "pytest-order>=1.2.0",
+    "autoflake>=2.3.0"
+]
+server = [
+    "websockets>=12.0",
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0.post1"
+]
+autogen = ["pyautogen==0.2.22"]
+
+[project.urls]
+Homepage = "https://github.com/MemGPT/MemGPT"
 
 [tool.black]
 line-length = 140
