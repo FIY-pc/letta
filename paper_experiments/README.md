@@ -12,6 +12,12 @@ install dependencies:
 uv sync --all-extras
 ```
 
+easy way to launch a pgvector
+```bash
+# set your variables in docker-compose.yaml first, then
+docker compose up -d
+```
+
 You need a a running postgres database to run this experiment and an OpenAI account. Set your enviornment variables:
 ```
 export PGVECTOR_TEST_DB_URL=postgresql+pg8000://{username}:{password}@localhost:5432/{db}

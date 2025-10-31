@@ -1,0 +1,18 @@
+name: memgpt-experiments
+services:
+  pgvector_db:
+    image: ankane/pgvector:latest
+    environment:
+      # replace with actual values
+      - POSTGRES_USER=${MEMGPT_PG_USER}
+      - POSTGRES_PASSWORD=${MEMGPT_PG_PASSWORD}
+      - POSTGRES_DB=${MEMGPT_PG_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+    driver: local
