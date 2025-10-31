@@ -23,17 +23,11 @@ import json
 import argparse
 import uuid
 import os
-from typing import List
 from tqdm import tqdm
 from collections import OrderedDict
-from openai import OpenAI
 import openai
-from memgpt import MemGPT
-from memgpt.data_types import Message, AgentState, Passage
-from memgpt.cli.cli import attach
-from memgpt.agent_store.storage import StorageConnector, TableType
+from memgpt.client.client import LocalClient
 from memgpt.config import MemGPTConfig
-from memgpt.metadata import MetadataStore
 from memgpt.cli.cli_config import delete
 from memgpt import utils
 from memgpt.constants import MAX_PAUSE_HEARTBEATS, RETRIEVAL_QUERY_DEFAULT_PAGE_SIZE, JSON_ENSURE_ASCII
@@ -90,7 +84,7 @@ def load_jsonl_to_list(filename):
     return data
 
 
-def run_nested_kv_task(config: MemGPTConfig, memgpt_client: MemGPT, kv_dict, user_message):
+def run_nested_kv_task(config: MemGPTConfig, memgpt_client: LocalClient, kv_dict, user_message):
     utils.DEBUG = True
 
     # delete agent if exists
@@ -320,7 +314,7 @@ if __name__ == "__main__":
         config.save()  # save config to file
 
         # create clien#t
-        memgpt_client = MemGPT()
+        memgpt_client = LocalClient()
 
         # run task
         results = run_nested_kv_task(config, memgpt_client, kv_dict, first_user_message)

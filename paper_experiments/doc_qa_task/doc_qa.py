@@ -20,19 +20,15 @@ import json
 import argparse
 import uuid
 import os
-import openai
 from openai import OpenAI
-from typing import List, Optional
+from typing import List
 from tqdm import tqdm
 
 from memgpt.embeddings import embedding_model
-from memgpt import MemGPT
+from memgpt.client.client import LocalClient
 from memgpt.credentials import MemGPTCredentials
-from memgpt.data_types import Message, AgentState
-from memgpt.cli.cli import attach
 from memgpt.agent_store.storage import StorageConnector, TableType
 from memgpt.config import MemGPTConfig
-from memgpt.metadata import MetadataStore
 from memgpt.cli.cli_config import delete
 from memgpt import utils
 from memgpt.utils import count_tokens
@@ -162,7 +158,7 @@ def generate_docqa_baseline_response(
 
 def generate_docqa_response(
     config: MemGPTConfig,
-    memgpt_client: MemGPT,
+    memgpt_client: LocalClient,
     persona: str,
     human: str,
     data_souce_name: str,  # data source containing all relevant documents to put in archival memory
@@ -267,7 +263,7 @@ def run_docqa_task(
         all_response_data = []
 
     # memgpt_client = MemGPT(config=config)
-    memgpt_client = MemGPT()
+    memgpt_client = LocalClient()
     # memgpt_client = MemGPT(quickstart="openai")
 
     # Loop through and run the doc QA
