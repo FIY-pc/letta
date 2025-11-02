@@ -19,20 +19,20 @@ docker compose up -d
 ```
 
 You need a a running postgres database to run this experiment and an OpenAI account. Set your enviornment variables:
-```
+```bash
 export PGVECTOR_TEST_DB_URL=postgresql+pg8000://{username}:{password}@localhost:5432/{db}
 export OPENAI_API_KEY={key}
 ```
 
 ## Download data
 Download the wikipedia embedding at:
-```
+```bash
 hf download Upstash/wikipedia-2024-06-bge-m3 --repo-type dataset --include "data/zh/*" --cache-dir {YOUR_DIR}
 ```
 
 Download the questions at
 
-```
+```bash
 hf download MemGPT/qa_data --repo-type dataset --cache-dir {YOUR_DIR}
 ```
 
@@ -48,7 +48,7 @@ Once completed, there will be ~19 million rows in the database.
 
 ### Creating an index
 To avoid extremeley slow queries, you need to create an index:
-```
+```sql
 CREATE INDEX ON memgpt_passages USING hnsw (embedding vector_l2_ops);
 ```
 You can check to see if the index was created successfully with:
@@ -59,7 +59,7 @@ memgpt_passages_embedding_idx | CREATE INDEX memgpt_passages_embedding_idx ON pu
 ```
 
 ## Running Document Q/A
-Run the script `./1_run_docqa.sh {model_name} {n_docs} {memgpt/model_name}`.
+Run the script `./1_run_docqa.sh {model_name} {n_docs} {memgpt/model_name} {data_file_path}`.
 
 ## Evaluation
 Run the script `./2_run_eval.sh`.

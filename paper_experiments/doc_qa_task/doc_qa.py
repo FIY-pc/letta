@@ -33,8 +33,20 @@ from memgpt.cli.cli_config import delete
 from memgpt import utils
 from memgpt.utils import count_tokens
 
-from paper_experiments.utils import load_gzipped_file, get_experiment_config
+from paper_experiments.utils import load_gzipped_file, get_experiment_config, make_json_serializable
+import logging
 
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename=os.path.join("logs", "doc_qa.log"),
+    filemode='a'
+)
+
+logger = logging.getLogger(__name__)
 
 DATA_SOURCE_NAME = "wikipedia"
 DOC_QA_PERSONA = "You are MemGPT DOC-QA bot. Your job is to answer questions about documents that are stored in your archival memory. The answer to the users question will ALWAYS be in your archival memory, so remember to keep searching if you can't find the answer. Answer the questions as if though the year is 2018."  # TODO decide on a good persona/human
@@ -79,7 +91,6 @@ def generate_docqa_baseline_response(
     Document [3](Title: Scientist) ...
     Document [4](Title: Norwegian Americans) ...
     Document [5](Title: Maria Goeppert Mayer) ...
-
     Question: who got the first nobel prize in physics
     Answer:
     """
@@ -91,11 +102,17 @@ def generate_docqa_baseline_response(
     archival_memory.disable_write = True  # prevent archival memory writes
     archival_memory.filters = {"data_source": data_souce_name}
     archival_memory_size = archival_memory.size()
-    print(f"Attaching archival memory with {archival_memory.size()} passages")
+    logger.info(f"Attaching archival memory with {archival_memory.size()} passages")
 
     # grab the top N documents
     embed_model = embedding_model(config.default_embedding_config)
-    embedding = embed_model.get_text_embedding(question)
+    
+    try:
+        embedding = embed_model.get_text_embedding(question)
+    except Exception as e:
+        logger.error(f"Error getting embedding for question: {e}")
+        return {"response": f"Error getting embedding for question: {e}", "documents": []}
+
     passages = archival_memory.query(query=question, query_vec=embedding, top_k=num_documents)
     documents_search_results_sorted_by_relevance = [passage.text for passage in passages]
 
@@ -105,8 +122,8 @@ def generate_docqa_baseline_response(
     extra_text = BASELINE_PROMPT + f"Question: {question}" + f"Answer:"
     padding = count_tokens(extra_text) + 1000
     truncation_length = int((config.default_llm_config.context_window - padding) / num_documents)
-    print("Token size", config.default_llm_config.context_window)
-    print(f"Truncation length: {truncation_length}, with padding: {padding}")
+    logger.info(f"Token size: {config.default_llm_config.context_window}")
+    logger.info(f"Truncation length: {truncation_length}, with padding: {padding}")
 
     # create the block of text holding all the documents
     documents_block_str = ""
@@ -129,7 +146,10 @@ def generate_docqa_baseline_response(
     credentials = MemGPTCredentials().load()
     assert credentials.openai_key is not None, credentials.openai_key
 
-    client = OpenAI(api_key=credentials.openai_key)
+    client = OpenAI(
+        api_key=credentials.openai_key,
+        base_url=config.default_llm_config.model_endpoint,
+    )
 
     # TODO: determine trunction length, and truncate documents
     content = "\n".join(
@@ -142,8 +162,8 @@ def generate_docqa_baseline_response(
         ]
     )
     total_tokens = count_tokens(content)
-    print("Total tokens:", total_tokens, num_documents)
-    print(len(documents_search_results_sorted_by_relevance))
+    logger.info(f"Total tokens: {total_tokens}, num_documents: {num_documents}")
+    logger.info(f"Number of documents found: {len(documents_search_results_sorted_by_relevance)}")
     chat_completion = client.chat.completions.create(
         messages=[
             {"role": "user", "content": content},
@@ -180,17 +200,20 @@ def generate_docqa_response(
     try:
         delete("agent", agent_name)
     except Exception as e:
-        print(e)
+        logger.error(e)
 
     # Create a new Agent that models the scenario setup
-    agent_state = memgpt_client.create_agent(
-        {
-            "name": agent_name,
-            "persona": persona,
-            "human": human,
-            "llm_config": config.default_llm_config,
-            "embedding_config": config.default_embedding_config,
-        }
+    # Note: LocalClient.create_agent() doesn't support llm_config/embedding_config directly,
+    # so we need to call server.create_agent() directly with the client's interface
+    # to ensure messages are properly routed to the LocalClient's interface
+    agent_state = memgpt_client.server.create_agent(
+        user_id=user_id,
+        name=agent_name,
+        persona=persona,
+        human=human,
+        llm_config=config.default_llm_config,
+        embedding_config=config.default_embedding_config,
+        interface=memgpt_client.interface,  # Use LocalClient's interface so messages are routed correctly
     )
 
     ## Attach the archival memory to the agent
@@ -200,11 +223,17 @@ def generate_docqa_response(
     archival_memory.disable_write = True  # prevent archival memory writes
     archival_memory.filters = {"data_source": data_souce_name}
     archival_memory_size = archival_memory.size()
-    print(f"Attaching archival memory with {archival_memory.size()} passages")
+    logger.info(f"Attaching archival memory with {archival_memory.size()} passages")
 
     # override the agent's archival memory with table containing wikipedia embeddings
-    memgpt_client.server._get_or_load_agent(user_id, agent_state.id).persistence_manager.archival_memory.storage = archival_memory
-    print("Loaded agent")
+    # Get or load the agent (should be in memory since we just created it)
+    agent = memgpt_client.server._get_or_load_agent(user_id, agent_state.id)
+    # Ensure the agent has the correct interface for message routing
+    if hasattr(agent, 'interface') and agent.interface is not memgpt_client.interface:
+        # Update interface to ensure messages are routed correctly
+        agent.interface = memgpt_client.interface
+    agent.persistence_manager.archival_memory.storage = archival_memory
+    logger.info("Loaded agent")
 
     ## sanity check: before experiment (agent should have source passages)
     # memory = memgpt_client.get_agent_memory(agent_state.id)
@@ -239,12 +268,16 @@ def evaluate_memgpt_response(memgpt_responses: List[dict], gold_answers: List[st
 
 
 def run_docqa_task(
-    model="gpt-4", provider="openai", baseline="memgpt", num_docs=1, n_samples=50
+    model="gpt-4", 
+    provider="openai", 
+    baseline="memgpt", 
+    num_docs=1, 
+    n_samples=50, 
+    data_file="paper_experiments/qa_data/30_total_documents/nq-open-30_total_documents_gold_at_0.jsonl.gz",
 ) -> List[dict]:  # how many samples (questions) from the file
     """Run the full set of MemGPT doc QA experiments"""
-
+    logger.info(data_file)
     # Grab the question data
-    data_file = "paper_experiments/qa_data/30_total_documents/nq-open-30_total_documents_gold_at_0.jsonl.gz"
     all_question_data = load_gzipped_file(data_file)
 
     config = get_experiment_config(os.environ.get("PGVECTOR_TEST_DB_URL"), endpoint_type=provider, model=model)
@@ -255,7 +288,7 @@ def run_docqa_task(
         filename = f"results/doc_qa_results_model_{model}.json"
     else:
         filename = f"results/doc_qa_baseline_model_{model}_num_docs_{num_docs}.json"
-    print("Results file:", filename)
+    logger.info(f"Results file: {filename}")
 
     if os.path.exists(filename):
         all_response_data = json.load(open(filename, "r"))
@@ -312,8 +345,10 @@ def run_docqa_task(
             }
         )
         # write to JSON file
+        # Clean response data to ensure JSON serialization
+        serializable_data = make_json_serializable(all_response_data)
         with open(filename, "w") as f:
-            json.dump(all_response_data, f, indent=4)
+            json.dump(serializable_data, f, indent=4)
 
     return all_response_data
 
@@ -324,6 +359,12 @@ if __name__ == "__main__":
     parser.add_argument("--provider", default="openai", type=str, help="The provider to use")
     parser.add_argument("--baseline", default="memgpt", type=str, help="The baseline to use")
     parser.add_argument("--num_docs", default=5, type=int, help="The number of documents to use in the prompt (baseline-only)")
+    parser.add_argument("--data_file", default="paper_experiments/qa_data/30_total_documents/nq-open-30_total_documents_gold_at_0.jsonl.gz", type=str, help="The data file to use")
     args = parser.parse_args()
-
-    results = run_docqa_task(args.model, args.provider, args.baseline, args.num_docs)
+    results = run_docqa_task(
+        model=args.model, 
+        provider=args.provider, 
+        baseline=args.baseline, 
+        num_docs=args.num_docs, 
+        data_file=args.data_file
+    )
