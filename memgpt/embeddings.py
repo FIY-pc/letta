@@ -20,7 +20,9 @@ from llama_index.core import Document as LlamaIndexDocument
 # from llama_index.embeddings.base import BaseEmbedding
 # from llama_index.embeddings.huggingface_utils import format_text
 import tiktoken
+import logging
 
+logger = logging.getLogger(__name__)
 
 def parse_and_chunk_text(text: str, chunk_size: int) -> List[str]:
     parser = SentenceSplitter(chunk_size=chunk_size)
@@ -101,14 +103,18 @@ class EmbeddingEndpoint:
 
         headers = {"Content-Type": "application/json"}
         json_data = {"input": text, "model": self.model_name, "user": self._user}
-
-        with httpx.Client() as client:
+        
+        logger.debug(f"Calling embedding API with url: {self._base_url}/embeddings with data: {json_data}")
+        verify_ssl = self._base_url.startswith("https://")
+        
+        with httpx.Client(verify=verify_ssl, follow_redirects=True) as client:
             response = client.post(
                 f"{self._base_url}/embeddings",
                 headers=headers,
                 json=json_data,
                 timeout=self._timeout,
             )
+            response.raise_for_status()
 
         response_json = response.json()
 
