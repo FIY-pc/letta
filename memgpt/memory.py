@@ -9,6 +9,9 @@ from memgpt.prompts.gpt_summarize import SYSTEM as SUMMARY_PROMPT_SYSTEM
 from memgpt.llm_api_tools import create
 from memgpt.data_types import Message, Passage, AgentState
 from memgpt.embeddings import embedding_model, query_embedding, parse_and_chunk_text
+import logging
+
+logger = logging.getLogger(__name__)
 
 # from llama_index import Document
 # from llama_index.node_parser import SimpleNodeParser
@@ -425,7 +428,7 @@ class EmbeddingArchivalMemory(ArchivalMemory):
                 return True
 
         except Exception as e:
-            print("Archival insert error", e)
+            logger.error(f"Archival insert error: {e}")
             raise e
 
     def search(self, query_string, count=None, start=None):
@@ -447,7 +450,7 @@ class EmbeddingArchivalMemory(ArchivalMemory):
             results = [{"timestamp": get_local_time(), "content": node.text} for node in results]
             return results, len(results)
         except Exception as e:
-            print("Archival search error", e)
+            logger.error(f"Archival search error: {e}")
             raise e
 
     def __repr__(self) -> str:
