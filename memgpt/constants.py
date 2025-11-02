@@ -7,7 +7,7 @@ MEMGPT_DIR = os.path.join(os.path.expanduser("~"), ".memgpt")
 TOOL_CALL_ID_MAX_LEN = 29
 
 # embeddings
-MAX_EMBEDDING_DIM = 4096  # maximum supported embeding size - do NOT change or else DBs will need to be reset
+MAX_EMBEDDING_DIM = 1024  # maximum supported embeding size - do NOT change or else DBs will need to be reset
 
 # tokenizers
 EMBEDDING_TO_TOKENIZER_MAP = {
