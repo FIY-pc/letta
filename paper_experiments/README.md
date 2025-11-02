@@ -18,6 +18,8 @@ easy way to launch a pgvector
 docker compose up -d
 ```
 
+to launch a embedding model for experiment, you can use [xinference](https://inference.readthedocs.io/zh-cn/latest/getting_started/using_xinference.html)
+
 You need a a running postgres database to run this experiment and an OpenAI account. Set your enviornment variables:
 ```bash
 export PGVECTOR_TEST_DB_URL=postgresql+pg8000://{username}:{password}@localhost:5432/{db}

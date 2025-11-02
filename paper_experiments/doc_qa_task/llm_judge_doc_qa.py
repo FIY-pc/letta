@@ -5,6 +5,11 @@ from openai import OpenAI
 from tqdm import tqdm
 from memgpt.credentials import MemGPTCredentials
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.formatter = logging.Formatter(f'%(levelname)s-%(lineno)d: %(message)s')
+
 # Note: did not end up using since no cases of cheating were observed
 # CHEATING_PROMPT = \
 #    """
@@ -37,14 +42,18 @@ EVAL_PROMPT = """
     Respond with a single token: 'CORRECT' or 'INCORRECT'.
     """
 
-EVAL_MODEL = "gpt-4-0613"
+EVAL_MODEL = "gpt-4o-mini"
 
 
 def evaluate_response(output: str):
     credentials = MemGPTCredentials().load()
     assert credentials.openai_key is not None, credentials.openai_key
+    print(f"evaluating response: '{output}'")
 
-    client = OpenAI(api_key=credentials.openai_key)
+    client = OpenAI(
+        api_key=credentials.openai_key,
+        base_url="https://api.openai.com/v1",
+    )
 
     chat_completion = client.chat.completions.create(
         messages=[
@@ -69,13 +78,12 @@ def evaluate_response(output: str):
 
 # Grab the last thing MemGPT generated, treat it as the reply
 def extract_final_memgpt_response(memgpt_responses: list) -> str:
-    final_index = -1
-    if "function_return" in memgpt_responses[final_index]:
-        final_index = -2
-    final_memgpt_response = [v for k, v in memgpt_responses[final_index].items()]
-    final_memgpt_response = final_memgpt_response[-1]
+    final_memgpt_response = ""
+    for i in range(len(memgpt_responses)):
+        if "assistant_message" in memgpt_responses[i]:
+            final_memgpt_response = memgpt_responses[i]["assistant_message"]
+            break
     return final_memgpt_response
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test script")
@@ -114,6 +122,9 @@ if __name__ == "__main__":
         if not args.baseline:
             # need to parse response for memgpt
             response = extract_final_memgpt_response(response)
+            if response == "":
+                logger.warning(f"No response found for question: '{question}'")
+                continue
         else:
             response = response["response"]
 
