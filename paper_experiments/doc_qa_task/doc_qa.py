@@ -106,7 +106,7 @@ def generate_docqa_baseline_response(
 
     # grab the top N documents
     embed_model = embedding_model(config.default_embedding_config)
-    
+
     try:
         embedding = embed_model.get_text_embedding(question)
     except Exception as e:
@@ -283,11 +283,12 @@ def run_docqa_task(
     config = get_experiment_config(os.environ.get("PGVECTOR_TEST_DB_URL"), endpoint_type=provider, model=model)
     config.save()  # save config to file
 
+    model_name = model.replace("/", "_")
     # result filename
     if baseline == "memgpt":
-        filename = f"results/doc_qa_results_model_{model}.json"
+        filename = f"results/doc_qa_results_model_{model_name}.json"
     else:
-        filename = f"results/doc_qa_baseline_model_{model}_num_docs_{num_docs}.json"
+        filename = f"results/doc_qa_baseline_model_{model_name}_num_docs_{num_docs}.json"
     logger.info(f"Results file: {filename}")
 
     if os.path.exists(filename):
