@@ -9,7 +9,7 @@
 
 ### 基本配置
 
-1. 装依赖，pip install .[postgres,experiments]
+1. 装依赖，pip install '.[postgres,experiments]'
 2. 准备embedding API，可以使用自己的api渠道或者使用[xinference](https://inference.readthedocs.io/zh-cn/latest/getting_started/using_xinference.html#run-on-nvidia-gpu-host)进行部署
  
 3. 拉起pgvector服务
