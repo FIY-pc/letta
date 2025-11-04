@@ -73,6 +73,8 @@ cd paper_experiments/doc_qa_task
 - model_name
 这两者可指定为不同值以测得多份数据
 
+若是运行时发现目录创建相关的报错且results目录没有被创建，请手动创建results目录
+
 ### LLM Judge
 
 更改2_run_eval.sh开头的两个参数列表
@@ -88,13 +90,12 @@ bash ./2_run_eval.sh
 
 ## 实验结果示例
 
-嵌入：bge-m3
-维度：1024
-模型：deepseek/deepseek-v3-0324
-评估模型：deepseek/deepseek-v3-0324
-
-n_docs: 5
-仅memgpt，仅qa_data第一分块，仅使用20w行wikipedia
+- 嵌入：bge-m3
+- 维度：1024
+- 模型：deepseek/deepseek-v3-0324
+- 评估模型：deepseek/deepseek-v3-0324
+- n_docs: 5
+- 仅memgpt，仅qa_data第一分块，仅使用20w行wikipedia
 
 
 [qa结果示例](./example_results/doc_qa_results_model_deepseek_deepseek-v3-0324.json)
