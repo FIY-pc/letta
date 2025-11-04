@@ -6,6 +6,7 @@ from memgpt.data_types import LLMConfig, EmbeddingConfig
 from memgpt.constants import LLM_MAX_TOKENS
 import uuid
 from datetime import datetime
+import os
 
 
 def load_gzipped_file(file_path):
@@ -23,6 +24,8 @@ def read_jsonl(filename) -> List[dict]:
 
 
 def get_experiment_config(postgres_uri, endpoint_type="openai", model="gpt-4"):
+    from dotenv import load_dotenv
+    load_dotenv()
     config = MemGPTConfig.load()
     config.archival_storage_type = "postgres"
     config.archival_storage_uri = postgres_uri
@@ -32,14 +35,14 @@ def get_experiment_config(postgres_uri, endpoint_type="openai", model="gpt-4"):
             model=model, 
             model_endpoint_type="openai", 
             # NOTE: this will override the model_endpoint in the config file
-            model_endpoint="https://api.openai.com/v1", 
+            model_endpoint=os.getenv("OPENAI_BASE_URL").strip(),
             context_window=8192
         )
         embedding_config = EmbeddingConfig(
             embedding_endpoint_type="hugging-face",
-            embedding_endpoint="http://localhost:9998/v1",
-            embedding_dim=1024,
-            embedding_model="bge-m3",
+            embedding_endpoint=os.getenv("EMBEDDING_BASE_URL").strip(),
+            embedding_dim=int(os.getenv("EMBEDDING_DIM").strip()),
+            embedding_model=os.getenv("EMBEDDING_MODEL").strip(),
             embedding_chunk_size=300,  # TODO: fix this
         )
     else:

@@ -4,9 +4,9 @@ services:
     image: ankane/pgvector:latest
     environment:
       # replace with actual values
-      - POSTGRES_USER=${MEMGPT_PG_USER}
-      - POSTGRES_PASSWORD=${MEMGPT_PG_PASSWORD}
-      - POSTGRES_DB=${MEMGPT_PG_DB}
+      - POSTGRES_USER=memgpt
+      - POSTGRES_PASSWORD=memgpt
+      - POSTGRES_DB=memgpt
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql

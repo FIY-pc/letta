@@ -4,12 +4,14 @@ import json
 from openai import OpenAI
 from tqdm import tqdm
 from memgpt.credentials import MemGPTCredentials
-
+import os
 import logging
+from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.formatter = logging.Formatter(f'%(levelname)s-%(lineno)d: %(message)s')
 
+load_dotenv()
 # Note: did not end up using since no cases of cheating were observed
 # CHEATING_PROMPT = \
 #    """
@@ -42,17 +44,19 @@ EVAL_PROMPT = """
     Respond with a single token: 'CORRECT' or 'INCORRECT'.
     """
 
-EVAL_MODEL = "gpt-4o-mini"
+EVAL_MODEL = os.getenv("EVAL_MODEL").strip()
 
 
 def evaluate_response(output: str):
-    credentials = MemGPTCredentials().load()
-    assert credentials.openai_key is not None, credentials.openai_key
     print(f"evaluating response: '{output}'")
+    base_url = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+    api_key = os.getenv("OPENAI_API_KEY")
 
+    assert api_key is not None, "OPENAI_API_KEY is not set"
+    
     client = OpenAI(
-        api_key=credentials.openai_key,
-        base_url="https://api.openai.com/v1",
+        api_key=api_key,
+        base_url=base_url,
     )
 
     chat_completion = client.chat.completions.create(

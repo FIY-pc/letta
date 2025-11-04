@@ -8,13 +8,18 @@ from tqdm import tqdm
 from memgpt.cli.cli_config import delete
 from memgpt.data_types import Passage
 from memgpt.agent_store.storage import StorageConnector, TableType
+from dotenv import load_dotenv
 
 from paper_experiments.utils import get_experiment_config
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from absl import app, flags
 import time
 
-BGE_M3_DIM = 1024
+load_dotenv()
+
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM").strip())
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL").strip()
+PGVECTOR_TEST_DB_URL = os.getenv("PGVECTOR_TEST_DB_URL").strip()
 
 # Batch size for inserting passages into database (to control memory usage)
 # Adjust this value based on your memory constraints
@@ -22,7 +27,7 @@ INSERT_BATCH_SIZE = 5000
 
 # Create an empty list to store the JSON objects
 source_name = "wikipedia"
-config = get_experiment_config(os.environ.get("PGVECTOR_TEST_DB_URL"), endpoint_type="openai")
+config = get_experiment_config(PGVECTOR_TEST_DB_URL, endpoint_type="openai")
 config.save()  # save config to file
 user_id = uuid.UUID(config.anon_clientid)
 
@@ -85,7 +90,7 @@ def process_parquet_chunk(chunk_df, conn, batch_size, added, model, filename, sh
             embedding_list = list(embedding)
         
         embedding_dim = len(embedding_list)
-        assert embedding_dim == BGE_M3_DIM, f"Wrong embedding dim: {embedding_dim}, expected {BGE_M3_DIM}"
+        assert embedding_dim == EMBEDDING_DIM, f"Wrong embedding dim: {embedding_dim}, expected {EMBEDDING_DIM}"
 
         passage_id = create_uuid_from_string(text)  # consistent hash for text (prevent duplicates)
         if passage_id in added:
@@ -138,7 +143,7 @@ def insert_lines(file_paths, conn, show_progress=False, batch_size=INSERT_BATCH_
     use_file_progress = show_progress and len(file_paths) > 1
     file_iterator = tqdm(file_paths, desc="Processing files", unit="file") if use_file_progress else file_paths
     
-    model = "bge-m3"
+    model = EMBEDDING_MODEL
     
     for file_path in file_iterator:
         # Strip whitespace and newlines from file path

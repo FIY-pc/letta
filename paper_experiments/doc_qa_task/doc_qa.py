@@ -32,9 +32,11 @@ from memgpt.config import MemGPTConfig
 from memgpt.cli.cli_config import delete
 from memgpt import utils
 from memgpt.utils import count_tokens
-
+from dotenv import load_dotenv
 from paper_experiments.utils import load_gzipped_file, get_experiment_config, make_json_serializable
 import logging
+
+load_dotenv()
 
 if not os.path.exists("logs"):
     os.makedirs("logs")
@@ -47,6 +49,9 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# 启动内部的debug模式
+utils.DEBUG = True
 
 DATA_SOURCE_NAME = "wikipedia"
 DOC_QA_PERSONA = "You are MemGPT DOC-QA bot. Your job is to answer questions about documents that are stored in your archival memory. The answer to the users question will ALWAYS be in your archival memory, so remember to keep searching if you can't find the answer. Answer the questions as if though the year is 2018."  # TODO decide on a good persona/human
@@ -145,10 +150,13 @@ def generate_docqa_baseline_response(
 
     credentials = MemGPTCredentials().load()
     assert credentials.openai_key is not None, credentials.openai_key
-
+    
+    api_key = os.getenv("OPENAI_API_KEY")
+    assert api_key is not None, "OPENAI_API_KEY is not set"
+    base_url = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
     client = OpenAI(
-        api_key=credentials.openai_key,
-        base_url=config.default_llm_config.model_endpoint,
+        api_key=api_key,
+        base_url=base_url,
     )
 
     # TODO: determine trunction length, and truncate documents
@@ -181,20 +189,11 @@ def generate_docqa_response(
     memgpt_client: LocalClient,
     persona: str,
     human: str,
-    data_souce_name: str,  # data source containing all relevant documents to put in archival memory
-    question: str,  # the question to ask the agent about the data source
+    data_souce_name: str,
+    question: str,
 ) -> List[dict]:
-    """Generate a MemGPT QA response given an input scenario
 
-    Scenario contains:
-    - state of the human profile
-    - state of the agent profile
-    - data source to load into archival memory (that will have the answer to the question)
-    """
-
-    utils.DEBUG = True
-
-    # delete agent if exists
+    # 每次问答都重建一个全新的agent
     user_id = uuid.UUID(config.anon_clientid)
     agent_name = f"doc_qa_agent_{config.default_llm_config.model}"
     try:
@@ -202,10 +201,6 @@ def generate_docqa_response(
     except Exception as e:
         logger.error(e)
 
-    # Create a new Agent that models the scenario setup
-    # Note: LocalClient.create_agent() doesn't support llm_config/embedding_config directly,
-    # so we need to call server.create_agent() directly with the client's interface
-    # to ensure messages are properly routed to the LocalClient's interface
     agent_state = memgpt_client.server.create_agent(
         user_id=user_id,
         name=agent_name,
@@ -213,33 +208,24 @@ def generate_docqa_response(
         human=human,
         llm_config=config.default_llm_config,
         embedding_config=config.default_embedding_config,
-        interface=memgpt_client.interface,  # Use LocalClient's interface so messages are routed correctly
+        interface=memgpt_client.interface,
     )
 
-    ## Attach the archival memory to the agent
-    # attach(agent_state.name, data_source=data_souce_name)
-    # HACK: avoid copying all the data by overriding agent archival storage
+    # 设置agent的archival memory，使用先前加载的wikipedia数据集
     archival_memory = StorageConnector.get_storage_connector(TableType.PASSAGES, config, user_id)
-    archival_memory.disable_write = True  # prevent archival memory writes
+    archival_memory.disable_write = True  # 禁止写入archival memory
     archival_memory.filters = {"data_source": data_souce_name}
     archival_memory_size = archival_memory.size()
     logger.info(f"Attaching archival memory with {archival_memory.size()} passages")
 
     # override the agent's archival memory with table containing wikipedia embeddings
-    # Get or load the agent (should be in memory since we just created it)
     agent = memgpt_client.server._get_or_load_agent(user_id, agent_state.id)
-    # Ensure the agent has the correct interface for message routing
     if hasattr(agent, 'interface') and agent.interface is not memgpt_client.interface:
-        # Update interface to ensure messages are routed correctly
         agent.interface = memgpt_client.interface
     agent.persistence_manager.archival_memory.storage = archival_memory
     logger.info("Loaded agent")
 
-    ## sanity check: before experiment (agent should have source passages)
-    # memory = memgpt_client.get_agent_memory(agent_state.id)
-    # assert memory["archival_memory"] == archival_memory_size, f"Archival memory size is wrong: {memory['archival_memory']}"
-
-    # Run agent.step() / or client.user_message to generate a response from the MemGPT agent
+    # 生成回答
     prompt_message = " ".join(
         [
             MEMGPT_PROMPT,
@@ -283,6 +269,9 @@ def run_docqa_task(
     config = get_experiment_config(os.environ.get("PGVECTOR_TEST_DB_URL"), endpoint_type=provider, model=model)
     config.save()  # save config to file
 
+    if not os.path.exists("results"):
+        os.makedirs("results")
+        
     model_name = model.replace("/", "_")
     # result filename
     if baseline == "memgpt":
