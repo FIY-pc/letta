@@ -125,7 +125,6 @@ dependencies:
       - marshmallow==3.26.1
       - matplotlib-inline==0.2.1
       - mdurl==0.1.2
-      - memgpt==0.3.7
       - mmh3==5.2.0
       - mpmath==1.3.0
       - msal==1.34.0
