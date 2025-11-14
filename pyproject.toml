@@ -76,6 +76,16 @@ dependencies = [
 letta = "letta.main:app"
 
 [project.optional-dependencies]
+# ====== Experimental ======
+experimental = [
+    "granian[uvloop,reload]>=2.3.2",
+    "supermemory>=3.4.0",
+    "zep-cloud>=3.10.0",
+    "mem0ai>=1.0.1",
+    "memobase>=0.0.27",
+    "memu>=2.1.4",
+]
+
 # ====== Databases ======
 postgres = [
     "pgvector>=0.2.3",
@@ -89,10 +99,6 @@ pinecone = ["pinecone[asyncio]>=7.3.0"]
 sqlite = ["aiosqlite>=0.21.0", "sqlite-vec>=0.1.7a2"]
 
 # ====== Server ======
-experimental = [
-    "uvloop>=0.21.0",
-    "granian[uvloop,reload]>=2.3.2",
-]
 server = [
     "websockets",
     "fastapi>=0.115.6",
